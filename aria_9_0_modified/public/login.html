@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Aria</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: var(--bg);
+      }
+      .auth-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 40px;
+        width: 320px;
+        text-align: center;
+        position: relative;
+      }
+      .auth-box h2 {
+        font-family: var(--font-head);
+        margin-bottom: 20px;
+      }
+      .auth-box input {
+        width: 100%;
+        margin-bottom: 15px;
+      }
+      .auth-box button {
+        width: 100%;
+        margin-top: 10px;
+      }
+      .auth-box p {
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .auth-box a {
+        color: var(--glow);
+        text-decoration: none;
+      }
+      /* Custom error message */
+      .error-message {
+        background: rgba(255, 95, 126, 0.1);
+        border-left: 3px solid var(--danger);
+        color: var(--danger);
+        font-size: 12px;
+        padding: 8px 12px;
+        margin-top: 12px;
+        border-radius: 6px;
+        text-align: left;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auth-box">
+      <h2>Login to Aria</h2>
+      <input
+        class="modal-input"
+        type="email"
+        id="email"
+        placeholder="Email"
+        required
+      />
+      <input
+        class="modal-input"
+        type="password"
+        id="password"
+        placeholder="Password"
+        required
+      />
+      <div id="error-message" class="error-message"></div>
+      <button class="modal-save" id="login-btn">Log In</button>
+      <p>Don't have an account? <a href="register.html">Register</a></p>
+    </div>
+    <script>
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const loginBtn = document.getElementById("login-btn");
+      const errorDiv = document.getElementById("error-message");
+
+      // Helper to show error message
+      function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+        // Auto‑hide after 4 seconds
+        setTimeout(() => {
+          errorDiv.style.display = "none";
+        }, 4000);
+      }
+
+      // Clear error when user starts typing
+      function clearError() {
+        errorDiv.style.display = "none";
+      }
+      emailInput.addEventListener("input", clearError);
+      passwordInput.addEventListener("input", clearError);
+
+      async function performLogin() {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!email || !password) {
+          showError("Please fill in both fields.");
+          return;
+        }
+
+        loginBtn.textContent = "Logging in...";
+
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Login failed");
+
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("email", data.email);
+
+          window.location.href = "chat.html";
+        } catch (err) {
+          showError(err.message);
+        } finally {
+          loginBtn.textContent = "Log In";
+        }
+      }
+
+      loginBtn.addEventListener("click", performLogin);
+      passwordInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          performLogin();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aria — Chat</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+      /* ── Character picker (mirrors .s-theme-group style) ── */
+      .s-character-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .s-char-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 10px 6px 8px;
+        border-radius: 10px;
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        cursor: pointer;
+        transition: all 0.18s ease;
+        font-family: inherit;
+        color: inherit;
+      }
+      .s-char-btn:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-1px);
+      }
+      .s-char-btn.selected {
+        border-color: var(--accent, #a78bfa);
+        background: rgba(167, 139, 250, 0.12);
+        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.15);
+      }
+      .s-char-btn .char-emoji {
+        font-size: 26px;
+        line-height: 1;
+      }
+      .s-char-btn .char-label {
+        font-size: 10px;
+        opacity: 0.7;
+        text-align: center;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 68px;
+      }
+      .s-char-btn.selected .char-label {
+        opacity: 1;
+      }
+      /* Avatar name label update */
+      .avatar-name {
+        transition: opacity 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="orb-bg one"></div>
+    <div class="orb-bg two"></div>
+
+    <!-- ══════════════════════════════════════
+         WELCOME MODAL
+    ══════════════════════════════════════ -->
+    <div id="config-modal">
+      <div class="modal-box">
+        <div class="modal-title">✨ Welcome to Aria ✨</div>
+        <div style="text-align: center; margin: 20px 0">
+          <p>You're now connected to your digital friend.</p>
+          <p>Speak or type to start a conversation.</p>
+          <p style="margin-top: 20px; font-size: 12px; opacity: 0.7">
+            Logged in as: <span id="modal-user-email"></span>
+          </p>
+        </div>
+        <button class="modal-save" id="modal-save-btn" type="button">
+          Got it
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SETTINGS OVERLAY
+    ══════════════════════════════════════ -->
+    <div id="settings-overlay">
+      <div class="settings-card">
+        <nav class="settings-nav">
+          <h2>Settings</h2>
+          <div class="s-nav-item active" data-panel="general">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"
+              />
+            </svg>
+            General
+          </div>
+          <div class="s-nav-item" data-panel="profile">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Profile
+          </div>
+          <div class="s-nav-item" data-panel="data">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M21 12c0 1.66-4.03 3-9 3S3 13.66 3 12" />
+              <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+            </svg>
+            Data
+          </div>
+          <div class="s-nav-item" data-panel="about">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+            About
+          </div>
+        </nav>
+        <div class="settings-content">
+          <button class="s-close-btn" id="settingsCloseBtn" title="Close">
+            ✕
+          </button>
+
+          <!-- GENERAL -->
+          <div class="s-panel active" id="s-panel-general">
+            <p class="s-section-label">Theme</p>
+            <div class="s-theme-group">
+              <button class="s-theme-btn" data-theme="light">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="5" />
+                  <path
+                    d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                  />
+                </svg>
+                Light
+              </button>
+              <button class="s-theme-btn" data-theme="dark">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+                Dark
+              </button>
+              <button class="s-theme-btn" data-theme="system">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+                System
+              </button>
+            </div>
+            <!-- Inside #s-panel-general, after the theme-group -->
+            <p class="s-section-label" style="margin-top: 20px">Background</p>
+            <div class="bg-grid" id="bgSelector">
+              <!-- Preset backgrounds -->
+              <div
+                class="bg-option"
+                data-bg="/images/bg2.jpeg"
+                style="background-image: url(/images/bg2.jpeg)"
+              ></div>
+              <div
+                class="bg-option"
+                data-bg="/images/bg3.jpg"
+                style="background-image: url(/images/bg3.jpg)"
+              ></div>
+              <div
+                class="bg-option"
+                data-bg="/images/bg4.jpg"
+                style="background-image: url(/images/bg4.jpg)"
+              ></div>
+              <div
+                class="bg-option"
+                data-bg="/images/bg5.jpg"
+                style="background-image: url(/images/bg5.jpg)"
+              ></div>
+              <div
+                class="bg-option"
+                data-bg="/images/background.jpg"
+                style="background-image: url(/images/background.jpg)"
+              >
+                Default
+              </div>
+
+              <!-- Upload box (dynamic) -->
+              <div
+                class="bg-option upload-box"
+                id="customBgUploadBtn"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background: var(--surface2);
+                  border: 2px dashed var(--border);
+                  cursor: pointer;
+                "
+              >
+                <span style="font-size: 2rem; font-weight: 300">+</span>
+              </div>
+            </div>
+
+            <!-- Hidden file input -->
+            <input
+              type="file"
+              id="customBgFileInput"
+              accept="image/jpeg,image/png,image/jpg,image/webp"
+              style="display: none"
+            />
+
+            <!-- Container for dynamically added custom thumbnails will be inside the grid -->
+            <p class="s-section-label">Language</p>
+            <div class="s-row">
+              <div><div class="s-row-label">Language</div></div>
+              <select class="s-select" id="s-langSelect">
+                <option value="en">🇺🇸 English</option>
+                <option value="km">🇰🇭 ភាសាខ្មែរ (Khmer)</option>
+              </select>
+            </div>
+            <p class="s-section-label" style="margin-top: 20px">Behaviour</p>
+            <div class="s-row">
+              <div>
+                <div class="s-row-label">Auto‑listen on open</div>
+                <div class="s-row-desc">Start microphone automatically</div>
+              </div>
+              <label class="s-toggle"
+                ><input type="checkbox" id="s-autoListen" checked />
+                <div class="s-toggle-track"></div
+              ></label>
+            </div>
+            <div class="s-row">
+              <div>
+                <div class="s-row-label">Message animations</div>
+                <div class="s-row-desc">Animate messages as they appear</div>
+              </div>
+              <label class="s-toggle"
+                ><input type="checkbox" id="s-animations" checked />
+                <div class="s-toggle-track"></div
+              ></label>
+            </div>
+
+            <!-- CHARACTER PICKER -->
+            <p class="s-section-label" style="margin-top: 20px">
+              Avatar Character
+            </p>
+            <div class="s-character-grid" id="s-characterGrid"></div>
+          </div>
+
+          <!-- PROFILE -->
+          <div class="s-panel" id="s-panel-profile">
+            <p class="s-section-label">Avatar</p>
+            <div class="s-avatar-wrap">
+              <div class="s-avatar-circle" id="s-avatarInitials">AR</div>
+              <div style="font-size: 0.82rem; color: #6b6b80">
+                Your initials from your display name.
+              </div>
+            </div>
+            <p class="s-section-label">Personal info</p>
+            <div class="s-row">
+              <div style="flex: 1">
+                <div class="s-row-label" style="margin-bottom: 8px">
+                  Display name
+                </div>
+                <input
+                  class="s-input"
+                  type="text"
+                  placeholder="Your name"
+                  id="s-displayName"
+                />
+                <p class="s-save-status" id="s-saveNameStatus"></p>
+              </div>
+            </div>
+            <div class="s-row">
+              <div style="flex: 1">
+                <div class="s-row-label" style="margin-bottom: 8px">Email</div>
+                <input
+                  class="s-input"
+                  type="email"
+                  id="s-profileEmail"
+                  readonly
+                  style="opacity: 0.55; cursor: not-allowed"
+                />
+              </div>
+            </div>
+            <p class="s-section-label" style="margin-top: 20px">Security</p>
+            <div class="s-row">
+              <div>
+                <div class="s-row-label">Change password</div>
+                <div class="s-row-desc">Update your login credentials</div>
+              </div>
+              <button class="s-btn" id="s-changePasswordBtn">Change</button>
+            </div>
+          </div>
+
+          <!-- DATA -->
+          <div class="s-panel" id="s-panel-data">
+            <p class="s-section-label">Storage</p>
+            <div class="s-data-card">
+              <div class="s-data-icon">💬</div>
+              <div>
+                <div class="s-data-title">Conversation history</div>
+                <div class="s-data-desc">
+                  All your chats are stored securely on our servers.
+                </div>
+                <button
+                  class="s-danger-btn"
+                  onclick="
+                    showConfirm(
+                      'Delete all chats',
+                      '⚠️ This will permanently delete ALL your conversations. This action cannot be undone. Are you sure?',
+                      deleteAllChats,
+                    )
+                  "
+                >
+                  🗑 Delete all chats
+                </button>
+              </div>
+            </div>
+            <div class="s-data-card">
+              <div class="s-data-icon">🧠</div>
+              <div>
+                <div class="s-data-title">Preferences</div>
+                <div class="s-data-desc">
+                  Theme, language, and other saved preferences.
+                </div>
+                <button
+                  class="s-danger-btn"
+                  onclick="
+                    showConfirm(
+                      'Reset all settings',
+                      'This will reset theme, language, and other preferences. You will be logged out. Continue?',
+                      () => {
+                        localStorage.clear();
+                        location.reload();
+                      },
+                    )
+                  "
+                >
+                  ♻️ Reset all settings
+                </button>
+              </div>
+            </div>
+            <p class="s-section-label">Export</p>
+            <div class="s-row">
+              <div>
+                <div class="s-row-label">Export your data</div>
+                <div class="s-row-desc">
+                  Download chat history and settings as JSON
+                </div>
+              </div>
+              <button class="s-btn" id="s-exportBtn">Export JSON</button>
+            </div>
+          </div>
+
+          <!-- ABOUT -->
+          <div class="s-panel" id="s-panel-about">
+            <div class="s-about-logo">
+              <div class="s-about-icon">✦</div>
+              <div>
+                <div class="s-about-name">Aria <span>✦</span></div>
+                <div class="s-about-ver">Version 1.0.0 · Build 2026.03</div>
+              </div>
+            </div>
+            <p class="s-section-label">Info</p>
+            <div class="s-row">
+              <div class="s-row-label">Made with</div>
+              <div style="font-size: 0.875rem; color: #1a1a2e">
+                ❤️ Node.js + Three.js + Groq AI
+              </div>
+            </div>
+            <div class="s-row">
+              <div class="s-row-label">AI Model</div>
+              <div style="font-size: 0.875rem; color: #6b6b80">
+                Llama 3.3 70B via Groq
+              </div>
+            </div>
+            <div class="s-row">
+              <div class="s-row-label">Feedback</div>
+              <a class="s-about-link" href="mailto:support@aria.ai"
+                >support@aria.ai ↗</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD MODAL -->
+    <div id="pw-modal">
+      <div class="pw-box">
+        <button class="pw-close" id="pwModalClose">✕</button>
+        <h3>Change password</h3>
+        <form id="pwForm">
+          <div class="pw-field">
+            <label>Current password</label
+            ><input
+              class="s-input"
+              type="password"
+              id="pw-current"
+              required
+              placeholder="Current password"
+            />
+          </div>
+          <div class="pw-field">
+            <label>New password</label
+            ><input
+              class="s-input"
+              type="password"
+              id="pw-new"
+              required
+              placeholder="Min 8 chars, upper, lower, number"
+            />
+          </div>
+          <div class="pw-field">
+            <label>Confirm new password</label
+            ><input
+              class="s-input"
+              type="password"
+              id="pw-confirm"
+              required
+              placeholder="Repeat new password"
+            />
+          </div>
+          <p class="pw-status" id="pw-status"></p>
+          <button class="pw-submit" type="submit" id="pw-submitBtn">
+            Save password
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- DELETE CHAT MODAL -->
+    <div id="deleteChatModal" class="delete-modal">
+      <div class="delete-modal-box">
+        <h3>Delete chat</h3>
+        <p>This chat can't be recovered. Are you sure you want to delete?</p>
+        <div class="delete-modal-actions">
+          <button class="delete-cancel" id="deleteCancelBtn">Cancel</button>
+          <button class="delete-confirm" id="deleteConfirmBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="confirmationModal" class="delete-modal">
+      <div class="delete-modal-box">
+        <h3 id="confirmTitle">Confirm action</h3>
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="delete-modal-actions">
+          <button class="delete-cancel" id="confirmCancelBtn">Cancel</button>
+          <button class="delete-confirm" id="confirmOkBtn">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SIDEBAR — slides in as overlay
+    ══════════════════════════════════════ -->
+    <div id="sidebar-backdrop"></div>
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <div class="chat-title">Aria <span>✦</span></div>
+        <div class="button-group">
+          <button id="newChat">New Chat</button>
+          <button id="closeSidebar" title="Close sidebar">✕</button>
+        </div>
+      </div>
+      <div id="chatList" class="chat-list"></div>
+      <div class="sidebar-footer">
+        <div class="user-info" id="userInfoTrigger">
+          <div class="user-icon">👤</div>
+          <span id="userEmail"></span>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="dropdown-item" id="settingsBtn"><i>⚙️</i> Settings</div>
+          <div class="dropdown-item" id="helpBtn">
+            <i>❓</i> Help & Feedback
+          </div>
+          <div class="dropdown-item" id="logoutBtn"><i>🚪</i> Logout</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         MAIN APP — avatar left | chat right
+    ══════════════════════════════════════ -->
+    <div id="app">
+      <!-- LEFT: Fullscreen avatar -->
+      <div id="avatar-panel">
+        <!-- Hamburger button — opens sidebar -->
+        <button
+          id="toggleSidebar"
+          title="Open sidebar"
+          aria-label="Open sidebar"
+        >
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
+
+        <!-- Three.js canvas rendered here by avatar.js -->
+        <div id="avatar-canvas"></div>
+
+        <!-- Status + emotion -->
+        <div class="status-row">
+          <div class="chat-panel-status">
+            <div class="status-dot" id="status-dot-chat"></div>
+            <span id="status-text-chat">Listening</span>
+          </div>
+        </div>
+
+        <!-- Voice bars -->
+        <div class="voice-bars" id="voice-bars">
+          <div class="voice-bar" style="height: 6px"></div>
+          <div class="voice-bar" style="height: 10px"></div>
+          <div class="voice-bar" style="height: 14px"></div>
+          <div class="voice-bar" style="height: 8px"></div>
+          <div class="voice-bar" style="height: 18px"></div>
+          <div class="voice-bar" style="height: 10px"></div>
+          <div class="voice-bar" style="height: 6px"></div>
+          <div class="voice-bar" style="height: 12px"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Chat panel -->
+      <div id="chat-panel">
+        <!-- Messages -->
+        <div id="messages">
+          <div class="msg ai">
+            <div class="msg-label">Aria</div>
+            Hey! I'm Aria — just talk and I'll listen. What's on your mind? ✨
+          </div>
+        </div>
+
+        <!-- Bottom input bar -->
+        <div id="bottom-bar">
+          <!-- Floating transcript above the input pill -->
+          <div class="transcript-bar" id="transcript-bar">
+            Listening for your voice…
+          </div>
+
+          <!-- Sleek Input Pill -->
+          <div class="input-pill">
+            <button
+              class="icon-btn-small"
+              id="mic-btn"
+              title="Toggle microphone"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+                />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
+            </button>
+            <input
+              type="text"
+              id="message-input"
+              placeholder="Type a message..."
+            />
+            <button id="send-btn" class="icon-btn-small" title="Send">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /#app -->
+
+    <script src="script.js"></script>
+    <script src="avatar.js"></script>
+    <script>
+      // ── Fill email ──
+      const email = localStorage.getItem("email");
+      if (email) {
+        const uel = document.getElementById("userEmail");
+        const mel = document.getElementById("modal-user-email");
+        if (uel) uel.innerText = email;
+        if (mel) mel.innerText = email;
+      }
+
+      // ── Sidebar open/close ──
+      const sidebar = document.getElementById("sidebar");
+      const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+
+      function openSidebar() {
+        sidebar.classList.add("open");
+        sidebarBackdrop.classList.add("show");
+      }
+      function closeSidebar() {
+        sidebar.classList.remove("open");
+        sidebarBackdrop.classList.remove("show");
+      }
+
+      // Hamburger button opens sidebar
+      document
+        .getElementById("toggleSidebar")
+        .addEventListener("click", openSidebar);
+      // ✕ inside sidebar closes it
+      document
+        .getElementById("closeSidebar")
+        .addEventListener("click", closeSidebar);
+      // Clicking backdrop closes sidebar
+      sidebarBackdrop.addEventListener("click", closeSidebar);
+
+      // Keep script.js toggleBtn compatible (it queries #toggleSidebar)
+      // We override its onclick after script.js loads:
+      window.addEventListener("load", () => {
+        const btn = document.getElementById("toggleSidebar");
+        if (btn) btn.onclick = openSidebar;
+      });
+
+      // ── User dropdown ──
+      const userTrigger = document.getElementById("userInfoTrigger");
+      const dropdown = document.getElementById("userDropdown");
+      let dropdownTimeout;
+      function openDropdown() {
+        clearTimeout(dropdownTimeout);
+        dropdown.classList.add("show");
+      }
+      function closeDropdown() {
+        dropdownTimeout = setTimeout(
+          () => dropdown.classList.remove("show"),
+          150,
+        );
+      }
+      userTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.contains("show") ? closeDropdown() : openDropdown();
+      });
+      dropdown.addEventListener("click", (e) => e.stopPropagation());
+      document.addEventListener("click", () => closeDropdown());
+
+      // ── Settings overlay ──
+      const settingsOverlay = document.getElementById("settings-overlay");
+      const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+      function openSettings() {
+        settingsOverlay.classList.add("show");
+        loadSettingsProfile();
+      }
+      function closeSettings() {
+        settingsOverlay.classList.remove("show");
+      }
+
+      document.getElementById("settingsBtn").addEventListener("click", () => {
+        closeDropdown();
+        closeSidebar();
+        openSettings();
+      });
+      document.getElementById("helpBtn").addEventListener("click", () => {
+        closeDropdown();
+        alert("Help & Feedback\nEmail: support@aria.ai");
+      });
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.clear();
+        window.location.href = "login.html";
+      });
+      settingsCloseBtn.addEventListener("click", closeSettings);
+      settingsOverlay.addEventListener("click", (e) => {
+        if (e.target === settingsOverlay) closeSettings();
+      });
+
+      // ── Settings nav routing ──
+      document.querySelectorAll(".s-nav-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          document
+            .querySelectorAll(".s-nav-item")
+            .forEach((n) => n.classList.remove("active"));
+          document
+            .querySelectorAll(".s-panel")
+            .forEach((p) => p.classList.remove("active"));
+          item.classList.add("active");
+          document
+            .getElementById("s-panel-" + item.dataset.panel)
+            .classList.add("active");
+        });
+      });
+
+      // ── Theme picker ──
+      const savedTheme = localStorage.getItem("aria-theme") || "system";
+      document.querySelectorAll(".s-theme-btn").forEach((btn) => {
+        if (btn.dataset.theme === savedTheme) btn.classList.add("selected");
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".s-theme-btn")
+            .forEach((b) => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          let theme = btn.dataset.theme;
+          if (theme === "system")
+            theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          localStorage.setItem("aria-theme", theme);
+          applyTheme();
+        });
+      });
+
+      // ── Language ──
+      const sLangSelect = document.getElementById("s-langSelect");
+      sLangSelect.value = localStorage.getItem("aria-lang") || "en";
+      sLangSelect.addEventListener("change", () => {
+        const lang = sLangSelect.value;
+        localStorage.setItem("aria-lang", lang);
+        // Update speech recognition language live
+        if (window.recognition) {
+          window.recognition.lang = lang === "km" ? "km-KH" : "en-US";
+        }
+        window.currentRecognitionLang = lang === "km" ? "km-KH" : "en-US";
+      });
+
+      // ── Auto-listen ──
+      const autoListenCheck = document.getElementById("s-autoListen");
+      autoListenCheck.checked = localStorage.getItem("autoListen") !== "false";
+      autoListenCheck.addEventListener("change", () =>
+        localStorage.setItem("autoListen", autoListenCheck.checked),
+      );
+
+      // ── Message animations ──
+      const animCheck = document.getElementById("s-animations");
+      animCheck.checked = localStorage.getItem("messageAnimations") !== "false";
+      animCheck.addEventListener("change", () => {
+        localStorage.setItem("messageAnimations", animCheck.checked);
+        applyAnimations();
+      });
+
+      // ── Load profile from backend ──
+      async function loadSettingsProfile() {
+        try {
+          const res = await fetch("/api/auth/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error();
+          const { user } = await res.json();
+          document.getElementById("s-profileEmail").value = user.email;
+          document.getElementById("s-displayName").value =
+            user.displayName || "";
+          document.getElementById("s-avatarInitials").innerText = (
+            user.displayName || user.email
+          )
+            .slice(0, 2)
+            .toUpperCase();
+          const uel = document.getElementById("userEmail");
+          if (uel) uel.innerText = user.displayName || user.email;
+        } catch {}
+      }
+
+      // ── Save display name ──
+      let saveNameTimer;
+      document
+        .getElementById("s-displayName")
+        .addEventListener("input", (e) => {
+          const status = document.getElementById("s-saveNameStatus");
+          status.textContent = "Saving...";
+          clearTimeout(saveNameTimer);
+          saveNameTimer = setTimeout(() => {
+            localStorage.setItem("displayName", e.target.value);
+            status.textContent = "Saved ✓";
+            setTimeout(() => (status.textContent = ""), 2000);
+          }, 800);
+        });
+
+      // ── Password modal ──
+      const pwModal = document.getElementById("pw-modal");
+      document
+        .getElementById("s-changePasswordBtn")
+        .addEventListener("click", () => pwModal.classList.add("show"));
+      document
+        .getElementById("pwModalClose")
+        .addEventListener("click", () => pwModal.classList.remove("show"));
+      pwModal.addEventListener("click", (e) => {
+        if (e.target === pwModal) pwModal.classList.remove("show");
+      });
+      document
+        .getElementById("pwForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const status = document.getElementById("pw-status");
+          if (
+            document.getElementById("pw-new").value !==
+            document.getElementById("pw-confirm").value
+          ) {
+            status.textContent = "Passwords do not match.";
+            return;
+          }
+          const submitBtn = document.getElementById("pw-submitBtn");
+          submitBtn.textContent = "Saving...";
+          submitBtn.disabled = true;
+          try {
+            const res = await fetch("/api/auth/change-password", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                currentPassword: document.getElementById("pw-current").value,
+                newPassword: document.getElementById("pw-new").value,
+              }),
+            });
+            if (!res.ok) throw new Error((await res.json()).error || "Failed");
+            status.textContent = "Password changed ✓";
+            status.style.color = "#2ecc71";
+            setTimeout(() => pwModal.classList.remove("show"), 1500);
+          } catch (err) {
+            status.textContent = err.message;
+            status.style.color = "#ff4f6a";
+          } finally {
+            submitBtn.textContent = "Save password";
+            submitBtn.disabled = false;
+          }
+        });
+
+      // ── Export data ──
+      document
+        .getElementById("s-exportBtn")
+        .addEventListener("click", async () => {
+          try {
+            const res = await fetch("/api/chat/history", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const chats = res.ok ? await res.json() : [];
+            const data = {
+              exportedAt: new Date().toISOString(),
+              chats,
+              settings: {
+                theme: localStorage.getItem("aria-theme"),
+                lang: localStorage.getItem("aria-lang"),
+              },
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+              type: "application/json",
+            });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "aria-export.json";
+            a.click();
+          } catch (err) {
+            alert("Export failed: " + err.message);
+          }
+        });
+
+      // ── Delete chat modal ──
+      const deleteModal = document.getElementById("deleteChatModal");
+      const deleteCancel = document.getElementById("deleteCancelBtn");
+      const deleteConfirm = document.getElementById("deleteConfirmBtn");
+      if (deleteCancel)
+        deleteCancel.addEventListener("click", () => {
+          deleteModal.classList.remove("show");
+          pendingDeleteId = null;
+        });
+      if (deleteConfirm)
+        deleteConfirm.addEventListener("click", async () => {
+          if (pendingDeleteId) {
+            await deleteChat(pendingDeleteId);
+            deleteModal.classList.remove("show");
+            pendingDeleteId = null;
+          }
+        });
+
+      // ── Delete all chats ──
+      async function deleteAllChats() {
+        try {
+          const res = await fetch("/api/chat/all", {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            document.getElementById("messages").innerHTML =
+              '<div class="msg ai"><div class="msg-label">Aria</div>All chats have been deleted. Start a new conversation! ✨</div>';
+            currentChatId = null;
+            await loadChats();
+            showMessage("All chats deleted successfully.");
+          } else throw new Error(data.error || "Failed to delete chats");
+        } catch (err) {
+          showMessage("Error: " + err.message);
+        }
+      }
+
+      // ── Mirror status dot to chat panel header ──
+      // Observe status-dot and copy classes to status-dot-chat
+      const mainDot = document.getElementById("status-dot");
+      const chatDot = document.getElementById("status-dot-chat");
+      const mainTxt = document.getElementById("status-text");
+      const chatTxt = document.getElementById("status-text-chat");
+      if (mainDot && chatDot) {
+        new MutationObserver(() => {
+          chatDot.className = mainDot.className;
+          if (mainTxt && chatTxt) chatTxt.textContent = mainTxt.textContent;
+        }).observe(mainDot, { attributes: true, attributeFilter: ["class"] });
+        if (mainTxt && chatTxt) {
+          new MutationObserver(() => {
+            chatTxt.textContent = mainTxt.textContent;
+          }).observe(mainTxt, {
+            childList: true,
+            characterData: true,
+            subtree: true,
+          });
+        }
+      }
+
+      // ── Character picker ──
+      const ARIA_CHARACTERS = [
+        {
+          id: "aria",
+          label: "Aria",
+          emoji: "✦",
+          gender: "female",
+          skinColor: 0xffccaa,
+          earColor: null,
+          bodyColor: 0x8b5cf6,
+          hairColor: 0x8b5a2b,
+          eyeColor: 0x4a90e2,
+          hasBill: false,
+          hasEars: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "mickey",
+          label: "Mickey",
+          emoji: "🐭",
+          gender: "male",
+          skinColor: 0xcc9966,
+          earColor: 0x111111,
+          bodyColor: 0xcc0000,
+          hairColor: 0x111111,
+          eyeColor: 0x111111,
+          hasEars: true,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "minnie",
+          label: "Minnie",
+          emoji: "🎀",
+          gender: "female",
+          skinColor: 0xffccaa,
+          earColor: 0x111111,
+          bodyColor: 0xff69b4,
+          hairColor: 0x111111,
+          eyeColor: 0x4a90e2,
+          hasEars: true,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: true,
+        },
+        {
+          id: "donald",
+          label: "Donald",
+          emoji: "🦆",
+          gender: "male",
+          skinColor: 0xfafafa,
+          earColor: null,
+          bodyColor: 0x0066cc,
+          hairColor: 0x000000,
+          eyeColor: 0x111111,
+          hasEars: false,
+          hasBill: true,
+          hasCrown: false,
+          hasHat: true,
+          hasBow: false,
+        },
+        {
+          id: "evilqueen",
+          label: "Evil Queen",
+          emoji: "👑",
+          gender: "female",
+          skinColor: 0xffe0d0,
+          earColor: null,
+          bodyColor: 0x1a0a3a,
+          hairColor: 0x111133,
+          eyeColor: 0x6600cc,
+          hasEars: false,
+          hasBill: false,
+          hasCrown: true,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "elsa",
+          label: "Elsa",
+          emoji: "❄️",
+          gender: "female",
+          skinColor: 0xd0eaf4,
+          earColor: null,
+          bodyColor: 0x5bb8e8,
+          hairColor: 0xe8f4ff,
+          eyeColor: 0x87ceeb,
+          hasEars: false,
+          hasBill: false,
+          hasCrown: true,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "simba",
+          label: "Simba",
+          emoji: "🦁",
+          gender: "male",
+          skinColor: 0xdaa520,
+          earColor: 0xcc8800,
+          bodyColor: 0xdaa520,
+          hairColor: 0x8b4513,
+          eyeColor: 0x228b22,
+          hasEars: true,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "moana",
+          label: "Moana",
+          emoji: "🌺",
+          gender: "female",
+          skinColor: 0xc8895a,
+          earColor: null,
+          bodyColor: 0xe8a030,
+          hairColor: 0x1a0a00,
+          eyeColor: 0x2c1a0e,
+          hasEars: false,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: false,
+        },
+        {
+          id: "goofy",
+          label: "Goofy",
+          emoji: "🐶",
+          gender: "male",
+          skinColor: 0xb8956a,
+          earColor: 0x5a3a1a,
+          bodyColor: 0x228822,
+          hairColor: 0x2a1800,
+          eyeColor: 0x222222,
+          hasEars: true,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: true,
+          hasBow: false,
+        },
+        {
+          id: "stitch",
+          label: "Stitch",
+          emoji: "💙",
+          gender: "male",
+          skinColor: 0x5b8dd9,
+          earColor: 0x3a6ab0,
+          bodyColor: 0x3a6ab0,
+          hairColor: 0x2a4a80,
+          eyeColor: 0x1a2a60,
+          hasEars: true,
+          hasBill: false,
+          hasCrown: false,
+          hasHat: false,
+          hasBow: false,
+        },
+      ];
+
+      const charGrid = document.getElementById("s-characterGrid");
+      const savedChar = localStorage.getItem("aria-character") || "aria";
+
+      ARIA_CHARACTERS.forEach((ch) => {
+        const btn = document.createElement("button");
+        btn.className = "s-char-btn" + (ch.id === savedChar ? " selected" : "");
+        btn.dataset.charId = ch.id;
+        btn.innerHTML =
+          '<span class="char-emoji">' +
+          ch.emoji +
+          '</span><span class="char-label">' +
+          ch.label +
+          "</span>";
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".s-char-btn")
+            .forEach((b) => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          localStorage.setItem("aria-character", ch.id);
+          localStorage.setItem("aria-character-gender", ch.gender || "female");
+          // Update avatar name label
+          const nameEl = document.querySelector(".avatar-name");
+          if (nameEl) {
+            nameEl.style.opacity = "0";
+            setTimeout(() => {
+              nameEl.textContent = ch.label.toUpperCase();
+              nameEl.style.opacity = "1";
+            }, 200);
+          }
+          // Signal avatar.js to rebuild
+          window.dispatchEvent(
+            new CustomEvent("aria-character-change", { detail: ch }),
+          );
+        });
+        charGrid.appendChild(btn);
+      });
+
+      // Set initial avatar name from saved pref
+      window.addEventListener("load", () => {
+        const active =
+          ARIA_CHARACTERS.find((c) => c.id === savedChar) || ARIA_CHARACTERS[0];
+        localStorage.setItem("aria-character-gender", active.gender || "female");
+        const nameEl = document.querySelector(".avatar-name");
+        if (nameEl) nameEl.textContent = active.label.toUpperCase();
+        window.dispatchEvent(
+          new CustomEvent("aria-character-change", { detail: active }),
+        );
+      });
+
+      // Background selector
+      const bgOptions = document.querySelectorAll(".bg-option");
+      const savedBg = localStorage.getItem("aria-background") || "none";
+      bgOptions.forEach((opt) => {
+        const bgUrl = opt.dataset.bg;
+        if (bgUrl === savedBg || (bgUrl === "none" && savedBg === "none")) {
+          opt.classList.add("selected");
+        }
+        opt.addEventListener("click", () => {
+          bgOptions.forEach((o) => o.classList.remove("selected"));
+          opt.classList.add("selected");
+          const bg = opt.dataset.bg;
+          localStorage.setItem("aria-background", bg);
+          if (bg && bg !== "none") {
+            document.body.style.background = `url('${bg}') no-repeat center center fixed`;
+            document.body.style.backgroundSize = "cover";
+          } else {
+            // revert to default (the CSS variable background)
+            document.body.style.background = "";
+            document.body.style.backgroundColor = "var(--bg)";
+          }
+        });
+      });
+      // Custom background management
+      const bgGrid = document.getElementById("bgSelector");
+      const uploadBtn = document.getElementById("customBgUploadBtn");
+      const fileInput = document.getElementById("customBgFileInput");
+
+      // Load stored custom backgrounds from localStorage
+      let customBackgrounds = JSON.parse(
+        localStorage.getItem("aria-custom-bgs") || "[]",
+      );
+
+      function saveCustomBackgrounds() {
+        localStorage.setItem(
+          "aria-custom-bgs",
+          JSON.stringify(customBackgrounds),
+        );
+      }
+
+      // Helper: create DOM element for a custom background (image URL)
+      function createCustomThumbnail(imageUrl, index) {
+        const div = document.createElement("div");
+        div.className = "bg-option custom-bg";
+        div.style.backgroundImage = `url(${imageUrl})`;
+        div.style.backgroundSize = "cover";
+        div.style.position = "relative";
+        div.dataset.bg = imageUrl; // so background selector can use it
+
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.innerHTML = "✕";
+        delBtn.className = "delete-custom-bg";
+        delBtn.style.cssText =
+          "position: absolute; top: 2px; right: 2px; background: var(--danger); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center;";
+        delBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          // Remove from array
+          customBackgrounds.splice(index, 1);
+          saveCustomBackgrounds();
+          // Remove from DOM
+          div.remove();
+          // If this image was the current background, revert to default
+          if (localStorage.getItem("aria-background") === imageUrl) {
+            localStorage.setItem("aria-background", "none");
+            document.body.style.background = "";
+            document.body.style.backgroundColor = "var(--bg)";
+          }
+          // Re-index remaining custom backgrounds
+          document.querySelectorAll(".custom-bg").forEach((el, i) => {
+            el.querySelector(".delete-custom-bg").onclick = (e) => {
+              e.stopPropagation();
+              const idx = i;
+              // logic similar to above, need to update the array and re-render? better to re-render all.
+              // For simplicity, we can re-render the whole grid later.
+            };
+          });
+        });
+        div.appendChild(delBtn);
+
+        // Click to set as background
+        div.addEventListener("click", () => {
+          document.body.style.background = `url(${imageUrl}) no-repeat center center fixed`;
+          document.body.style.backgroundSize = "cover";
+          localStorage.setItem("aria-background", imageUrl);
+          // Remove selected class from all bg-options
+          document
+            .querySelectorAll(".bg-option")
+            .forEach((opt) => opt.classList.remove("selected"));
+          div.classList.add("selected");
+        });
+
+        return div;
+      }
+
+      // Render all custom backgrounds into the grid (insert before the upload box)
+      function renderCustomBackgrounds() {
+        // Remove existing custom thumbnails (those with class .custom-bg)
+        document.querySelectorAll(".custom-bg").forEach((el) => el.remove());
+        // Insert each custom background before the upload box
+        customBackgrounds.forEach((bgUrl, idx) => {
+          const thumb = createCustomThumbnail(bgUrl, idx);
+          bgGrid.insertBefore(thumb, uploadBtn);
+        });
+      }
+
+      // On page load, render
+      renderCustomBackgrounds();
+
+      // Handle file upload
+      uploadBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 1 * 1024 * 1024) {
+          alert("Image too large (max 1MB).");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const dataUrl = ev.target.result;
+          customBackgrounds.push(dataUrl);
+          saveCustomBackgrounds();
+          // Create thumbnail and insert before upload box
+          const thumb = createCustomThumbnail(
+            dataUrl,
+            customBackgrounds.length - 1,
+          );
+          bgGrid.insertBefore(thumb, uploadBtn);
+          fileInput.value = ""; // allow re-upload of same file if needed
+        };
+        reader.readAsDataURL(file);
+      });
+    </script>
+  </body>
+</html>

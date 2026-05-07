@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aria — Your Digital Friend</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: var(--bg);
+        margin: 0;
+      }
+      .landing-box {
+        text-align: center;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 40px;
+        width: 320px;
+      }
+      .landing-box h1 {
+        font-family: var(--font-head);
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--glow);
+      }
+      .landing-box p {
+        margin-bottom: 2rem;
+        color: var(--muted);
+      }
+      .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+      }
+      .btn {
+        background: linear-gradient(135deg, var(--glow), var(--glow2));
+        border: none;
+        color: white;
+        padding: 10px 24px;
+        border-radius: 30px;
+        font-family: var(--font-body);
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .btn:hover {
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="landing-box">
+      <h1>✨ Aria ✨</h1>
+      <p>Your 3D AI friend – talk naturally, see their respond.</p>
+      <div class="btn-group">
+        <button class="btn" onclick="location.href = 'login.html'">
+          Login
+        </button>
+        <button class="btn" onclick="location.href = 'register.html'">
+          Register
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

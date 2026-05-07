@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ritwickdey.liveserver",
+    "esbenp.prettier-vscode",
+    "PKief.material-icon-theme",
+    "christian-kohler.npm-intellisense",
+    "ms-vscode.vscode-js-profile-flame"
+  ]
+}
